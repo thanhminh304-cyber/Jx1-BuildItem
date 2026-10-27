@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jx1 Equipment Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: #1a1a1a; 
+            color: #fff; 
+            font-family: 'Inter', sans-serif; 
+            user-select: none; /* Tránh bôi đen text khi chạm liên tục trên mobile */
+        }
+        .grid-bg { 
+            background-image: radial-gradient(#333 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #222;
+        }
+        .item-slot {
+            border: 2px solid #444;
+            background-color: rgba(0,0,0,0.6);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.2s ease-in-out;
+            padding: 8px;
+            min-height: 90px;
+            position: relative;
+        }
+        .char-slot {
+            transition: all 0.2s ease-in-out;
+        }
+        .item-slot select, .char-slot select {
+            background: #111;
+            color: #fff;
+            border: 1px solid #666;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            outline: none;
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .disabled-slot { opacity: 0.5; pointer-events: none; }
+        
+        .text-kim { color: #FFD700; }
+        .text-thuy { color: #00FFFF; }
+        .text-moc { color: #00FF00; }
+        .text-hoa { color: #FF0000; }
+        .text-tho { color: #8B5A2B; }
+        .text-none { color: #9ca3af; } /* text-gray-400 */
+        
+        .border-kim { border-color: #FFD700 !important; box-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+        .border-thuy { border-color: #00FFFF !important; box-shadow: 0 0 8px rgba(0, 255, 255, 0.4); }
+        .border-moc { border-color: #00FF00 !important; box-shadow: 0 0 8px rgba(0, 255, 0, 0.4); }
+        .border-hoa { border-color: #FF0000 !important; box-shadow: 0 0 8px rgba(255, 0, 0, 0.4); }
+        .border-tho { border-color: #8B5A2B !important; box-shadow: 0 0 8px rgba(139, 90, 43, 0.4); }
+        .border-none { border-color: #444 !important; box-shadow: none; }
+
+        .kich-an-text {
+            font-size: 0.75rem;
+            font-weight: bold;
+            height: 1rem;
+            margin-top: 4px;
+        }
+
+        .mobile-value { display: none; font-size: 0.85rem; margin-top: 4px; font-weight: bold; }
+
+        /* Mobile specific styles */
+        @media (max-width: 768px) {
+            .item-slot select, .char-slot select { display: none !important; }
+            .mobile-value { display: block !important; }
+            .item-slot:active, .char-slot:active { transform: scale(0.95); border-color: #fff; }
+            .item-slot { cursor: pointer; }
+            .char-slot { cursor: pointer; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-6 px-4">
+
+    <h1 class="text-2xl font-bold mb-4 text-yellow-500 text-center">Giả lập phối đồ kích ẩn Võ Lâm 1</h1>
+    
+    <!-- Controls Section -->
+    <div class="mb-6 flex flex-col md:flex-row gap-4 md:gap-6 items-center w-full max-w-[600px]">
+        
+        <!-- Character Element Selector (Touch Cycle on Mobile) -->
+        <div class="char-slot w-full md:w-auto flex-1 bg-gray-800 p-4 rounded-lg border border-gray-600 flex flex-col md:flex-row items-center justify-center gap-2" onclick="handleCycleClick('char')">
+            <label class="font-bold text-yellow-400">Ngũ Hành Nhân Vật:</label>
+            <select id="char-element" onchange="updateAll(); event.stopPropagation();">
+                <option value="None">Chưa chọn</option>
+                <option value="Kim" class="text-kim">Hệ Kim (Sinh Thủy)</option>
+                <option value="Thuy" class="text-thuy">Hệ Thủy (Sinh Mộc)</option>
+                <option value="Moc" class="text-moc">Hệ Mộc (Sinh Hỏa)</option>
+                <option value="Hoa" class="text-hoa">Hệ Hỏa (Sinh Thổ)</option>
+                <option value="Tho" class="text-tho">Hệ Thổ (Sinh Kim)</option>
+            </select>
+            <!-- Mobile Span -->
+            <span id="mobile-val-char" class="mobile-value text-none">Chưa chọn</span>
+        </div>
+
+        <!-- Break Element Checkbox -->
+        <div class="flex flex-col items-center bg-gray-800 p-4 rounded-lg border border-gray-600 h-full justify-center w-full md:w-auto">
+            <div class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="break-element" class="w-5 h-5 cursor-pointer accent-red-500" onchange="updateAll()">
+                <label for="break-element" class="font-bold text-red-400 cursor-pointer text-sm md:text-base">Phá hành (Tự build tay)</label>
+            </div>
+            <span class="text-[0.65rem] text-gray-400 mt-1">Đổi hệ không bị xoay vòng liên đới</span>
+        </div>
+    </div>
+
+    <!-- Equipment Grid -->
+    <div class="grid grid-cols-3 gap-3 w-full max-w-[600px] grid-bg p-4 md:p-6 rounded-xl border-4 border-gray-700 shadow-2xl">
+        
+        <!-- COLUMN 1 -->
+        <div class="flex flex-col space-y-3 md:space-y-4">
+            <div class="item-slot disabled-slot text-gray-400">Mặt Nạ</div>
+            <div class="item-slot" id="slot-hoUyen" onclick="handleCycleClick('hoUyen')">
+                <div class="font-bold">Hộ Uyển</div>
+                <select id="sel-hoUyen" onchange="handleItemChange('hoUyen'); event.stopPropagation();"></select>
+                <span id="mobile-val-hoUyen" class="mobile-value"></span>
+                <div id="lines-hoUyen" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot" id="slot-nhanTren" onclick="handleCycleClick('nhanTren')">
+                <div class="font-bold">Nhẫn (Trên)</div>
+                <select id="sel-nhanTren" onchange="handleItemChange('nhanTren'); event.stopPropagation();"></select>
+                <span id="mobile-val-nhanTren" class="mobile-value"></span>
+                <div id="lines-nhanTren" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot" id="slot-nhanDuoi" onclick="handleCycleClick('nhanDuoi')">
+                <div class="font-bold">Nhẫn (Dưới)</div>
+                <select id="sel-nhanDuoi" onchange="handleItemChange('nhanDuoi'); event.stopPropagation();"></select>
+                <span id="mobile-val-nhanDuoi" class="mobile-value"></span>
+                <div id="lines-nhanDuoi" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot" id="slot-ngocBoi" onclick="handleCycleClick('ngocBoi')">
+                <div class="font-bold">Ngọc Bội</div>
+                <select id="sel-ngocBoi" onchange="handleItemChange('ngocBoi'); event.stopPropagation();"></select>
+                <span id="mobile-val-ngocBoi" class="mobile-value"></span>
+                <div id="lines-ngocBoi" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot disabled-slot text-gray-400">Phi Phong</div>
+        </div>
+
+        <!-- COLUMN 2 (Off-centered vertically) -->
+        <div class="flex flex-col space-y-3 md:space-y-4 pt-10 md:pt-14">
+            <div class="item-slot h-24 md:h-28" id="slot-mao" onclick="handleCycleClick('mao')">
+                <div class="font-bold">Mão</div>
+                <select id="sel-mao" onchange="handleItemChange('mao'); event.stopPropagation();"></select>
+                <span id="mobile-val-mao" class="mobile-value"></span>
+                <div id="lines-mao" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot h-32 md:h-40" id="slot-yPhuc" onclick="handleCycleClick('yPhuc')">
+                <div class="font-bold flex flex-col items-center"><span>Y Phục</span> <span class="text-xs text-gray-400">(Áo)</span></div>
+                <select id="sel-yPhuc" onchange="handleItemChange('yPhuc'); event.stopPropagation();"></select>
+                <span id="mobile-val-yPhuc" class="mobile-value"></span>
+                <div id="lines-yPhuc" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot h-20 md:h-24" id="slot-yeuDai" onclick="handleCycleClick('yeuDai')">
+                <div class="font-bold">Yêu Đái</div>
+                <select id="sel-yeuDai" onchange="handleItemChange('yeuDai'); event.stopPropagation();"></select>
+                <span id="mobile-val-yeuDai" class="mobile-value"></span>
+                <div id="lines-yeuDai" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot h-32 md:h-40 disabled-slot text-gray-400">Ngựa</div>
+        </div>
+
+        <!-- COLUMN 3 -->
+        <div class="flex flex-col space-y-3 md:space-y-4">
+            <div class="item-slot h-20 md:h-24" id="slot-hangLien" onclick="handleCycleClick('hangLien')">
+                <div class="font-bold">Hạng Liên</div>
+                <select id="sel-hangLien" onchange="handleItemChange('hangLien'); event.stopPropagation();"></select>
+                <span id="mobile-val-hangLien" class="mobile-value"></span>
+                <div id="lines-hangLien" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot h-32 md:h-48" id="slot-binhKhi" onclick="handleCycleClick('binhKhi')">
+                <div class="font-bold">Binh Khí</div>
+                <select id="sel-binhKhi" onchange="handleItemChange('binhKhi'); event.stopPropagation();"></select>
+                <span id="mobile-val-binhKhi" class="mobile-value"></span>
+                <div id="lines-binhKhi" class="kich-an-text"></div>
+            </div>
+            <div class="item-slot h-28 md:h-32" id="slot-giay" onclick="handleCycleClick('giay')">
+                <div class="font-bold">Giày</div>
+                <select id="sel-giay" onchange="handleItemChange('giay'); event.stopPropagation();"></select>
+                <span id="mobile-val-giay" class="mobile-value"></span>
+                <div id="lines-giay" class="kich-an-text"></div>
+            </div>
+            <div class="flex flex-row space-x-2 md:space-x-3 w-full h-16 md:h-20">
+                <div class="item-slot disabled-slot text-gray-400 flex-1 text-sm m-0 min-h-0">Ấn</div>
+                <div class="item-slot disabled-slot text-gray-400 flex-1 text-sm m-0 min-h-0">Sức</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const elementsList = ['None', 'Kim', 'Thuy', 'Moc', 'Hoa', 'Tho'];
+        const elementsMod = ['Kim', 'Thuy', 'Moc', 'Hoa', 'Tho']; // Cho vòng lặp Auto-build
+        const sinhMap = { 'Kim': 'Thuy', 'Thuy': 'Moc', 'Moc': 'Hoa', 'Hoa': 'Tho', 'Tho': 'Kim' };
+        
+        const colorClasses = {
+            'Kim': 'text-kim', 'Thuy': 'text-thuy', 'Moc': 'text-moc', 
+            'Hoa': 'text-hoa', 'Tho': 'text-tho', 'None': 'text-none'
+        };
+        const borderClasses = {
+            'Kim': 'border-kim', 'Thuy': 'border-thuy', 'Moc': 'border-moc', 
+            'Hoa': 'border-hoa', 'Tho': 'border-tho', 'None': 'border-none'
+        };
+        const elementNames = {
+            'None': 'Chưa chọn', 'Kim': 'Hệ Kim', 'Thuy': 'Hệ Thủy',
+            'Moc': 'Hệ Mộc', 'Hoa': 'Hệ Hỏa', 'Tho': 'Hệ Thổ'
+        };
+
+        const itemIds = ['hoUyen', 'nhanTren', 'nhanDuoi', 'ngocBoi', 'mao', 'yPhuc', 'yeuDai', 'hangLien', 'binhKhi', 'giay'];
+
+        // Phân nhóm và hệ cơ sở
+        const baseGroups = {
+            'yPhuc': 0, 'hangLien': 0,  // Base Kim (G1)
+            'binhKhi': 1, 'mao': 1,     // Base Thủy (G2)
+            'giay': 2, 'nhanTren': 2,   // Base Mộc (G3)
+            'hoUyen': 3, 'ngocBoi': 3,  // Base Hỏa (G4)
+            'yeuDai': 4, 'nhanDuoi': 4  // Base Thổ (G5)
+        };
+
+        // Nguồn sinh - Trang bị nào được sinh ra từ cặp nào
+        const dependencies = {
+            'binhKhi': ['yPhuc', 'hangLien'],
+            'mao': ['yPhuc', 'hangLien'],
+            'giay': ['binhKhi', 'mao'],
+            'nhanTren': ['binhKhi', 'mao'],
+            'hoUyen': ['giay', 'nhanTren'],
+            'ngocBoi': ['giay', 'nhanTren'],
+            'yeuDai': ['hoUyen', 'ngocBoi'],
+            'nhanDuoi': ['hoUyen', 'ngocBoi'],
+            'yPhuc': ['yeuDai', 'nhanDuoi'],
+            'hangLien': ['yeuDai', 'nhanDuoi']
+        };
+
+        function init() {
+            const optionsHTML = `
+                <option value="None">Chưa chọn</option>
+                <option value="Kim" class="text-kim">Hệ Kim</option>
+                <option value="Thuy" class="text-thuy">Hệ Thủy</option>
+                <option value="Moc" class="text-moc">Hệ Mộc</option>
+                <option value="Hoa" class="text-hoa">Hệ Hỏa</option>
+                <option value="Tho" class="text-tho">Hệ Thổ</option>
+            `;
+            itemIds.forEach(id => {
+                const sel = document.getElementById('sel-' + id);
+                sel.innerHTML = optionsHTML;
+                sel.value = 'None';
+            });
+            updateAll();
+        }
+
+        // Kích hoạt khi click thẳng vào Slot hoặc Char Box ở giao diện Mobile
+        function handleCycleClick(id) {
+            if (window.innerWidth > 768) return; // Không kích hoạt cycle trên Desktop
+
+            const selectId = id === 'char' ? 'char-element' : 'sel-' + id;
+            const selectEl = document.getElementById(selectId);
+            
+            let currentIndex = elementsList.indexOf(selectEl.value);
+            let nextIndex = (currentIndex + 1) % elementsList.length;
+            selectEl.value = elementsList[nextIndex];
+
+            if (id === 'char') {
+                updateAll();
+            } else {
+                handleItemChange(id);
+            }
+        }
+
+        function handleItemChange(changedId) {
+            const isBroken = document.getElementById('break-element').checked;
+            const selectedVal = document.getElementById('sel-' + changedId).value;
+
+            if (!isBroken && selectedVal !== 'None') {
+                // Auto Build Mode: Tính toán offset và áp dụng cho toàn bộ đồ
+                const selectedIndex = elementsMod.indexOf(selectedVal);
+                const baseIndex = baseGroups[changedId];
+                const diff = (selectedIndex - baseIndex + 5) % 5;
+
+                itemIds.forEach(id => {
+                    const newIndex = (baseGroups[id] + diff) % 5;
+                    document.getElementById('sel-' + id).value = elementsMod[newIndex];
+                });
+            }
+            updateAll();
+        }
+
+        function updateAll() {
+            const charSelect = document.getElementById('char-element');
+            const charVal = charSelect.value;
+            const charMobileSpan = document.getElementById('mobile-val-char');
+            
+            // Cập nhật text & màu cho khung Char trên Mobile
+            charMobileSpan.textContent = elementNames[charVal];
+            charMobileSpan.className = `mobile-value ${colorClasses[charVal]}`;
+            
+            itemIds.forEach(id => {
+                const val = document.getElementById('sel-' + id).value;
+                const slot = document.getElementById('slot-' + id);
+                const sel = document.getElementById('sel-' + id);
+                const mobSpan = document.getElementById('mobile-val-' + id);
+                const linesDiv = document.getElementById('lines-' + id);
+
+                // Reset & apply base styles
+                slot.className = `item-slot ${slot.className.match(/(h-)[^\s]+/g) ? slot.className.match(/(h-)[^\s]+/g).join(' ') : ''}`;
+                sel.className = `bg-black border border-gray-500 rounded font-bold ${colorClasses[val]}`;
+                slot.firstElementChild.className = `font-bold ${colorClasses[val]}`;
+                
+                // Cập nhật text & màu cho thẻ span hiển thị ở Mobile
+                mobSpan.textContent = elementNames[val] !== 'Chưa chọn' ? elementNames[val] : '';
+                mobSpan.className = `mobile-value ${colorClasses[val]}`;
+
+                if (val !== 'None') {
+                    slot.classList.add(borderClasses[val]);
+                    
+                    // Logic Tính dòng kích ẩn cộng dồn
+                    let activeCount = 0;
+                    
+                    // 1. Kiểm tra Ẩn 3 (Nhân vật Sinh ra Trang Bị này)
+                    if (charVal !== 'None' && sinhMap[charVal] === val) {
+                        activeCount++;
+                    }
+
+                    // 2. Kiểm tra Ẩn 1, 2 (2 Món Trang bị nguồn sinh ra Trang Bị này)
+                    const deps = dependencies[id];
+                    deps.forEach(depId => {
+                        const depVal = document.getElementById('sel-' + depId).value;
+                        if (depVal !== 'None' && sinhMap[depVal] === val) {
+                            activeCount++;
+                        }
+                    });
+
+                    // Cập nhật dòng Text Ẩn
+                    if (activeCount === 1) {
+                        linesDiv.innerHTML = 'Kích: Ẩn 1';
+                        linesDiv.className = 'kich-an-text text-white';
+                    } else if (activeCount === 2) {
+                        linesDiv.innerHTML = 'Kích: Ẩn 1, 2';
+                        linesDiv.className = 'kich-an-text text-white';
+                    } else if (activeCount === 3) {
+                        linesDiv.innerHTML = 'Kích: Ẩn 1, 2, 3';
+                        linesDiv.className = 'kich-an-text text-yellow-400 drop-shadow-md';
+                    } else {
+                        linesDiv.innerHTML = '';
+                    }
+
+                } else {
+                    slot.classList.add('border-none');
+                    linesDiv.innerHTML = '';
+                }
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
